@@ -38,3 +38,4 @@
 
 # CMake files
 out/
+.debug.txt
