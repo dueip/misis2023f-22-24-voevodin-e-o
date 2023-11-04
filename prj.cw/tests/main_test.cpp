@@ -18,10 +18,16 @@ auto check_if_everything_was_found_correctly = []
 TEST_CASE("List files") {
 	
 	SUBCASE("Normal") {
-		std::filesystem::path test_dir_path = "test_dir";
+		std::filesystem::path curr_path = std::filesystem::current_path();
+		std::filesystem::path test_dir_path = curr_path.string() + "/test_dir";
 		std::vector<ve::Path> normal_entries = { "test_rec_dir", "file.txt" };
-
-		REQUIRE_NOTHROW(ve::listFiles(test_dir_path));
+		try {
+			ve::listFiles(test_dir_path);
+		}
+		catch (std::exception& exc) {
+			setlocale(LC_ALL, "");
+			std::cout << "AAAAAAAAAA" << exc.what() << std::endl;
+		}
 		auto test_dir_entires = ve::listFiles(test_dir_path);
 		CHECK(check_if_everything_was_found_correctly(test_dir_entires, normal_entries));
 
