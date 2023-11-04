@@ -5,9 +5,12 @@
 
 
 auto check_if_everything_was_found_correctly = []
-(const std::vector<ve::DirectoryEntry>& whats_being_checked, const std::vector<ve::Path>& to_check_with) -> bool {
+(const std::vector<ve::DirectoryEntry>& whats_being_checked, const std::vector<ve::Path>& to_check_with,
+	const ve::Path& original_path
+	) -> bool {
 	for (auto& el : whats_being_checked) {
-		if (std::find(to_check_with.begin(), to_check_with.end(), el.path()) == to_check_with.end()) {
+		auto relative_path = std::filesystem::relative(el, original_path);
+		if (std::find(to_check_with.begin(), to_check_with.end(), relative_path) == to_check_with.end()) {
 			return false;
 		}
 	}
@@ -18,18 +21,12 @@ auto check_if_everything_was_found_correctly = []
 TEST_CASE("List files") {
 	
 	SUBCASE("Normal") {
-		std::filesystem::path curr_path = std::filesystem::current_path();
-		std::filesystem::path test_dir_path = curr_path.string() + "/test_dir";
+		
+		std::filesystem::path test_dir_path = std::filesystem::path(CMAKE_TEST_PATH).string() + "/test_dir";
 		std::vector<ve::Path> normal_entries = { "test_rec_dir", "file.txt" };
-		try {
-			ve::listFiles(test_dir_path);
-		}
-		catch (std::exception& exc) {
-			setlocale(LC_ALL, "");
-			std::cout << "AAAAAAAAAA" << exc.what() << std::endl;
-		}
+		REQUIRE_NOTHROW(ve::listFiles(test_dir_path));
 		auto test_dir_entires = ve::listFiles(test_dir_path);
-		CHECK(check_if_everything_was_found_correctly(test_dir_entires, normal_entries));
+		CHECK(check_if_everything_was_found_correctly(test_dir_entires, normal_entries, test_dir_path));
 
 	
 	}
