@@ -9,11 +9,40 @@
 
 
 namespace ve {
-
-	constexpr std::vector<std::string_view> listFiles(const std::filesystem::path& directory) {
-		if (std::filesystem::is_directory(directory)) {
-			
+	enum class DirectoryIteration {
+		NORMAL = 0,
+		RECURSIVE = 1
+	};
+	using Path = std::filesystem::path;
+	using DirectoryEntry = std::filesystem::directory_entry;
+	
+	
+	std::vector<DirectoryEntry> listFiles(const Path& directory, DirectoryIteration it_type = DirectoryIteration::NORMAL) {
+		using namespace std::filesystem;
+		std::error_code err;
+		
+		//// Если путь не является директорией, то кидаем ошибку
+		//if (!is_directory(status(directory, err))) {
+		//	throw std::exception(err.message().c_str());
+		//}
+		//
+		std::vector<DirectoryEntry> all_files;
+		
+		switch (it_type) {
+		case DirectoryIteration::NORMAL: 
+			for (auto& el : directory_iterator(directory)) {
+				all_files.push_back(el);
+			}
+			break;
+		case DirectoryIteration::RECURSIVE: 
+			for (auto& el : recursive_directory_iterator(directory)) {
+				all_files.push_back(el);
+			}
+			break;
 		}
+
+		return all_files;
+		
 	}
 
 	// Move only
