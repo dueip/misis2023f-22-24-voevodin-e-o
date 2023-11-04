@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 file (GLOB_RECURSE sources src/*.cpp include/*.hpp)
 file (GLOB_RECURSE sources_tests tests/*.cpp)
 
-add_definitions(-DCMAKE_TEST_PATH=\"${CMAKE_HOME_DIRECTORY}/tests\")
+add_definitions(-DCMAKE_TEST_PATH=\"${CMAKE_HOME_DIRECTORY}/tests/\")
 
 add_library(loading_project ${sources})
 
