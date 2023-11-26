@@ -13,9 +13,10 @@ namespace ve {
 		NORMAL = 0,
 		RECURSIVE = 1
 	};
-	using Path = std::filesystem::path;
-	using DirectoryEntry = std::filesystem::directory_entry;
-	
+	namespace {
+		using Path = std::filesystem::path;
+		using DirectoryEntry = std::filesystem::directory_entry;
+	}
 	
 	std::vector<DirectoryEntry> listFiles(const Path& directory, DirectoryIteration it_type = DirectoryIteration::NORMAL) {
 		using namespace std::filesystem;
@@ -58,14 +59,15 @@ namespace ve {
 		virtual ~ILoader() = default;
 
 
-		virtual constexpr bool loadFromFile(const std::filesystem::path& path) const = 0;
+		virtual bool loadFromFile(const Path& path) const = 0;
 	};
 
 	class TestLoader final : public ILoader {
 	public:
 		TestLoader() = default;
-		virtual constexpr bool loadFromFile(const std::filesystem::path& path) const override { return true; };
 		virtual ~TestLoader() = default;
+
+		bool loadFromFile(const Path& path) const override { return true; };
 	};
 }
 
