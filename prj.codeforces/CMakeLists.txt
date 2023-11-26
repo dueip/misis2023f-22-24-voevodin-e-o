@@ -7,3 +7,5 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_executable(0236a 0236a.cpp)
 add_executable(0118a 0118a.cpp)
+add_executable(0058a 0058a.cpp)
+add_executable(0455a 0455a.cpp)
