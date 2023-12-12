@@ -53,3 +53,29 @@ TEST_CASE("List files") {
 		CHECK(check_list_files({"file.txt","test_rec_dir", "test_rec_dir/file2.txt"}, "test_dir", ve::DirectoryIteration::RECURSIVE));
 	}
 }
+
+TEST_CASE("Loader") {
+	ve::TestLoader test_loader;
+	SUBCASE("Check loader's load functions") {
+		auto files = ve::listFiles(CMAKE_TEST_PATH);
+		for (auto& el : files) {
+			CHECK(test_loader.loadFromFile(el));
+		}
+	}
+}
+
+TEST_CASE("Translation units") {
+	CHECK(ve::fromKilobytes(1) == 1024);
+	CHECK(ve::fromMegabytes(1) == 1024 * 1024);
+	CHECK(ve::fromMegabytes(1) == ve::fromKilobytes(1024));
+	CHECK(ve::fromGigabytes(1) == 1024 * 1024 * 1024);
+}
+
+TEST_CASE("Image loader") {
+	ve::ImageLoader image_loader;
+	CHECK(image_loader.isDirty() == false);
+	
+	SUBCASE("Check if everything loads correctly") {
+		CHECK(image_loader.loadFromFile("./"));
+	}
+}
