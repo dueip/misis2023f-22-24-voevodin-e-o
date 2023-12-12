@@ -36,16 +36,3 @@ ve::Error ve::DirectoryLoader::loadFromFile(const ve::Path& file_path) {
 
 
 
-ve::Error ve::DirectoryLoader::loadFromFiles(const auto begin, const ve::DirectoryLoader::It& end) {
-	
-	for (auto& loader : loaders) {
-		for (ve::DirectoryLoader::It entry{}; entry != end; ++entry) {
-			
-			if (loader->isExtensionSupported(entry.path().extension().string())) {
-				ve::Error err = loader->loadFromFile(file_path);
-				if (err) return err;
-			}
-		}
-	}
-	return ve::ErrorCodes::OK;
-}
