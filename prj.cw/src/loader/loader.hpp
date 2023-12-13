@@ -18,16 +18,19 @@ namespace ve {
 	}
 
 
-	inline std::string toLower(const std::string& str) {
+	constexpr inline std::string toLower(const std::string& str) {
 		std::string string_temp;
 		string_temp.reserve(str.size());
 		std::transform(str.begin(), str.end(), string_temp.begin(), [](char a) { return toLower(a); });
+		return string_temp;
 	}
 
 	enum class ErrorCodes {
 		OK = 0,
 		FileLargerThanAChunk,
 		CannotParseImageFromFile,
+		UnsupportedExtension,
+		WasDirty,
 		Unfiltered = ~0
 	};
 
@@ -106,6 +109,8 @@ namespace ve {
 		// it available for new use
 		virtual bool isDirty() const noexcept = 0;
 
+		virtual void reset() = 0;
+
 		// It moves it out so it is not const.
 		virtual [[nodiscard]] std::vector<cv::Mat>& getData() noexcept = 0;
 		
@@ -129,7 +134,7 @@ namespace ve {
 
 		[[nodiscard]] std::vector<cv::Mat> copyData() const noexcept override { return mats_; };
 
-		ve::Error loadFromFile(const Path& path) override { return ve::ErrorCodes::OK; };
+		ve::Error loadFromFile(const Path& path) override	 { return ve::ErrorCodes::OK; };
 		bool isDirty() const noexcept { return is_dirty_; };
 
 	
@@ -141,6 +146,12 @@ namespace ve {
 	class DicomLoader final : public ILoader {
 	public:
 		DicomLoader() = default;
+		DicomLoader(const DicomLoader& other) = delete;
+		DicomLoader& operator=(const DicomLoader& other) = delete;
+		
+		DicomLoader(DicomLoader&&) = default;
+		DicomLoader& operator=(DicomLoader&&) = default;
+		
 		virtual ~DicomLoader() = default;
 
 		[[nodiscard]] std::vector<cv::Mat>& getData() noexcept { is_dirty_ = true; return mats_; };
@@ -153,7 +164,7 @@ namespace ve {
 		bool isDirty() const noexcept { return is_dirty_; };
 		
 		constexpr [[nodiscard]] bool isExtensionSupported(const std::string& extension) const noexcept override {
-			return extension == "dcm";
+			return extension == ".dcm";
 		}
 
 	private:
@@ -165,6 +176,12 @@ namespace ve {
 	public:
 
 		ImageLoader() = default;
+		ImageLoader(const ImageLoader&) = delete;
+		ImageLoader& operator=(const ImageLoader&) = delete;
+
+		ImageLoader(ImageLoader&&) = default;
+		ImageLoader& operator=(ImageLoader&&) = default;
+		
 		virtual ~ImageLoader() = default;
 
 		[[nodiscard]] std::vector<cv::Mat>& getData() noexcept { is_dirty_ = true; return mats_; };
@@ -175,17 +192,19 @@ namespace ve {
 
 		bool isDirty() const noexcept { return is_dirty_; };
 
-		constexpr [[nodiscard]] bool isExtensionSupported(const std::string& extension) const noexcept override {
+		[[nodiscard]] bool isExtensionSupported(const std::string& extension) const noexcept override {
 			return (extensions.find(extension) != extensions.end());
 		}
 
+
+		void reset() override { is_dirty_ = false; mats_.clear(); }
 	private:
 		std::vector<cv::Mat> mats_;
 		bool is_dirty_ = false;
 		// Should use OPENCV_IO_MAX_IMAGE_PIXELS here, but for some reason cannot find it?
 		constexpr inline static int64_t chunk_size = fromGigabytes(1);
 		// For now we'll go with only those 3 types, but we'll see.
-		const inline static std::unordered_set<std::string> extensions = { "png", "jpg", "jpeg" };
+		const inline static std::unordered_set<std::string> extensions = { ".png", ".jpg", ".jpeg" };
 	};
 
 	class DirectoryLoader final : public ILoader {
@@ -193,31 +212,32 @@ namespace ve {
 		DirectoryLoader() = default;
 		virtual ~DirectoryLoader() = default;
 
-		ve::Error loadFromFile(const Path& path);
-		template<typename PathIt>
-		ve::Error loadFromFiles(const PathIt begin, const PathIt end);
+		ve::Error loadFromFile(const Path& path) override;
+		template<std::forward_iterator PathIt>
+		ve::Error loadFromFiles(const PathIt& begin, const PathIt& end);
 
 
 		[[nodiscard]] std::vector<cv::Mat>& getData() noexcept { throw std::exception("You can't use non-const getdata over a directory"); };
 		[[nodiscard]] const std::vector<cv::Mat>& getData() const noexcept { return constructVector(); };
 		[[nodiscard]] std::vector<cv::Mat> copyData() const noexcept { return constructVector(); };
 
-		ve::Error loadFromFile(const Path& path) override;
 
-		bool isDirty() const noexcept { return true; };
+		bool isDirty() const noexcept { for (const auto& el : loaders) { if (el->isDirty()) return true; } return false; };
+
+		void reset() { for (auto& el : loaders) { el->reset(); } }
 
 		constexpr [[nodiscard]] bool isExtensionSupported(const std::string& extension) const noexcept override {
 			return false;
 		}
 		
 	private:
-		const std::vector<std::unique_ptr<ILoader>> loaders = {
-			std::make_unique<ImageLoader>()
+		const std::vector<std::shared_ptr<ILoader>> loaders = {
+			std::make_shared<ImageLoader>()
 		};
 
 		constexpr [[nodiscard]] std::vector<cv::Mat> constructVector() const {
 			std::vector<cv::Mat> vec;
-			for (const std::unique_ptr<ILoader>& loader : loaders) {
+			for (const auto& loader : loaders) {
 				const std::vector<cv::Mat>& loader_data = loader->getData();
 				for (const cv::Mat& mat : loader_data) {
 					vec.push_back(mat);
@@ -228,14 +248,19 @@ namespace ve {
 	};
 
 }
-template<typename PathIt>
-ve::Error ve::DirectoryLoader::loadFromFiles(const PathIt begin, const PathIt end) {
+
+
+template<std::forward_iterator PathIt>
+ve::Error ve::DirectoryLoader::loadFromFiles(const PathIt& begin, const PathIt& end) {
+	if (isDirty()) {
+		return ve::ErrorCodes::WasDirty;
+	}
 
 	for (auto& loader : loaders) {
-		for (auto entry = begin; entry != end; ++entry) {	
-			if (loader->isExtensionSupported(entry->path().extension().string())) {
-				ve::Error err = loader->loadFromFile(file_path);
-				if (err) return err;
+		for (PathIt entry = begin; entry != end; ++entry) {	
+			if (loader->isExtensionSupported(entry->extension().string())) {
+				ve::Error err = loader->loadFromFile(*entry);
+				if (err.code != ve::ErrorCodes::OK) return err;
 			}
 		}
 	}

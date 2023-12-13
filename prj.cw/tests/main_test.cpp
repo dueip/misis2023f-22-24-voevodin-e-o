@@ -54,16 +54,6 @@ TEST_CASE("List files") {
 	}
 }
 
-TEST_CASE("Loader") {
-	ve::TestLoader test_loader;
-	SUBCASE("Check loader's load functions") {
-		auto files = ve::listFiles(CMAKE_TEST_PATH);
-		for (auto& el : files) {
-			CHECK(test_loader.loadFromFile(el));
-		}
-	}
-}
-
 TEST_CASE("Translation units") {
 	CHECK(ve::fromKilobytes(1) == 1024);
 	CHECK(ve::fromMegabytes(1) == 1024 * 1024);
@@ -76,6 +66,29 @@ TEST_CASE("Image loader") {
 	CHECK(image_loader.isDirty() == false);
 	
 	SUBCASE("Check if everything loads correctly") {
-		CHECK(image_loader.loadFromFile("./"));
+		CHECK_FALSE(image_loader.loadFromFile("./"));
+		CHECK(image_loader.loadFromFile("./").code == ve::ErrorCodes::UnsupportedExtension);
+	}
+}
+
+TEST_CASE("Directory Loader") {
+	ve::DirectoryLoader dir_loader;
+
+	SUBCASE("DirectoryLoading, [loading]") {
+		CHECK(dir_loader.loadFromFile("./"));
+		dir_loader.reset();
+		CHECK(dir_loader.loadFromFile(CMAKE_TEST_PATH));
+		CHECK(dir_loader.copyData().size() == 0);
+		dir_loader.reset();
+		const std::vector<std::filesystem::path> files{
+			std::string(CMAKE_TEST_PATH) + "images/1.jpg",
+			std::string(CMAKE_TEST_PATH) + "images/3.png"
+		};
+		CHECK(dir_loader.loadFromFiles(files.cbegin(), files.cend()));
+		CHECK(dir_loader.copyData().size() == 2);
+		dir_loader.reset();
+		CHECK(dir_loader.loadFromFile(std::string(CMAKE_TEST_PATH) + "images/"));
+		CHECK(dir_loader.copyData().size() == 2);
+
 	}
 }
