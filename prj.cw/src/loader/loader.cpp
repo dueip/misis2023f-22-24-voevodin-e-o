@@ -14,7 +14,7 @@ ve::Error ve::ImageLoader::loadFromFile(const ve::Path& file_path) {
 			return Error{ ve::ErrorCodes::FileLargerThanAChunk, "File was larger than a chunk" };
 		}
 		if (!cv::haveImageReader(file_path.string())) {
-			return { ve::ErrorCodes::CannotParseImageFromFile, "Couldn't read an image from a file (" + file_path.string() + ")"};
+			return { ve::ErrorCodes::CannotParseImageFromFile, file_path.string() };
 
 		}			
 		temp.push_back(std::move(cv::imread(file_path.string())));

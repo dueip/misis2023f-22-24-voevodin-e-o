@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.8)
 
-option(BUILD_ONLY_LIBRARY "Only build loader" on)
+option(BUILD_ONLY_LIBRARY "Only build loader" off)
 
 if (BUILD_ONLY_LIBRARY)
 	add_subdirectory(prj.cw/src/)
