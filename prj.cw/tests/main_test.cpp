@@ -75,9 +75,9 @@ TEST_CASE("Directory Loader") {
 	ve::DirectoryLoader dir_loader;
 
 	SUBCASE("DirectoryLoading, [loading]") {
-		CHECK(dir_loader.loadFromFile("./"));
+		CHECK(dir_loader.loadFromDirectory("./"));
 		dir_loader.reset();
-		CHECK(dir_loader.loadFromFile(CMAKE_TEST_PATH));
+		CHECK(dir_loader.loadFromDirectory(CMAKE_TEST_PATH));
 		CHECK(dir_loader.copyData().size() == 0);
 		dir_loader.reset();
 		const std::vector<std::filesystem::path> files{
@@ -87,7 +87,7 @@ TEST_CASE("Directory Loader") {
 		CHECK(dir_loader.loadFromFiles(files.cbegin(), files.cend()));
 		CHECK(dir_loader.copyData().size() == 2);
 		dir_loader.reset();
-		CHECK(dir_loader.loadFromFile(std::string(CMAKE_TEST_PATH) + "images/"));
+		CHECK(dir_loader.loadFromDirectory(std::string(CMAKE_TEST_PATH) + "images/"));
 		CHECK(dir_loader.copyData().size() == 2);
 
 	}

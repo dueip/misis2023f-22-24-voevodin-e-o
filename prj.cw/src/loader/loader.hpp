@@ -212,7 +212,7 @@ namespace ve {
 		DirectoryLoader() = default;
 		virtual ~DirectoryLoader() = default;
 
-		ve::Error loadFromDirectory(const Path& path) override;
+		ve::Error loadFromDirectory(const Path& path);
 		template<std::forward_iterator PathIt>
 		ve::Error loadFromFiles(const PathIt& begin, const PathIt& end);
 
@@ -225,7 +225,7 @@ namespace ve {
 
 		void reset() { for (auto& el : loaders) { el->reset(); } }
 
-		constexpr [[nodiscard]] bool isExtensionSupported(const std::string& extension) const noexcept override {
+		constexpr [[nodiscard]] bool isExtensionSupported(const std::string& extension) const noexcept {
 			for (const auto& el : loaders) { if (el->isExtensionSupported(extension)) return true; } return false;
 		}
 		
