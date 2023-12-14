@@ -207,17 +207,16 @@ namespace ve {
 		const inline static std::unordered_set<std::string> extensions = { ".png", ".jpg", ".jpeg" };
 	};
 
-	class DirectoryLoader final : public ILoader {
+	class DirectoryLoader final  {
 	public:
 		DirectoryLoader() = default;
 		virtual ~DirectoryLoader() = default;
 
-		ve::Error loadFromFile(const Path& path) override;
+		ve::Error loadFromDirectory(const Path& path) override;
 		template<std::forward_iterator PathIt>
 		ve::Error loadFromFiles(const PathIt& begin, const PathIt& end);
 
 
-		[[nodiscard]] std::vector<cv::Mat>& getData() noexcept { throw std::exception("You can't use non-const getdata over a directory"); };
 		[[nodiscard]] const std::vector<cv::Mat>& getData() const noexcept { return constructVector(); };
 		[[nodiscard]] std::vector<cv::Mat> copyData() const noexcept { return constructVector(); };
 
@@ -227,7 +226,7 @@ namespace ve {
 		void reset() { for (auto& el : loaders) { el->reset(); } }
 
 		constexpr [[nodiscard]] bool isExtensionSupported(const std::string& extension) const noexcept override {
-			return false;
+			for (const auto& el : loaders) { if (el->isExtensionSupported(extension)) return true; } return false;
 		}
 		
 	private:

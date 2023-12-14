@@ -26,7 +26,7 @@ ve::Error ve::ImageLoader::loadFromFile(const ve::Path& file_path) {
 	return ve::ErrorCodes::OK;
 }
 
-ve::Error ve::DirectoryLoader::loadFromFile(const ve::Path& file_path) {
+ve::Error ve::DirectoryLoader::loadFromDirectory(const ve::Path& file_path) {
 	if (isDirty()) {
 		return ve::ErrorCodes::WasDirty;
 	}
