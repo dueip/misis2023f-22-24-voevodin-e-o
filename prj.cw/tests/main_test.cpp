@@ -90,8 +90,9 @@ TEST_CASE("Directory Loader") {
 		CHECK(dir_loader.loadFromDirectory(std::string(CMAKE_TEST_PATH) + "images/"));
 		CHECK(dir_loader.copyData().size() == 2);
 		dir_loader.reset();
-		CHECK(!dir_loader.loadFromDirectory(std::string(CMAKE_TEST_PATH) + "images/bugged_images"));
-		dir_loader.reset();
-		CHECK(dir_loader.loadFromDirectory(std::string(CMAKE_TEST_PATH) + "images/bugged_images").message == std::string(CMAKE_TEST_PATH) + "images/bugged_images\\1.jpg");
+		ve::Error err = dir_loader.loadFromDirectory(std::string(CMAKE_TEST_PATH) + "images/bugged_images");
+		CHECK(!err);
+		CHECK(err.message == std::string(CMAKE_TEST_PATH) + "images/bugged_images\\1.jpg");
+		CHECK(dir_loader.copyData().size() == 0);
 	}
 }
