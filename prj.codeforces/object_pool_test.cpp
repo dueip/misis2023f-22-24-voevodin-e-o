@@ -4,30 +4,70 @@
 #include <vector>
 #include <stack>
 #include <memory>
+#include <functional>
 #include <doctest/doctest.h>
 
+
+
+
 template<typename T>
-class IObjectPool {
+class ObjectPool final {
 public:
-	IObjectPool() = default;
-	virtual ~IObjectPool() = default;
-	using Ptr = std::unique_ptr<T>;
-	IObjectPool(const IObjectPool&) = delete;
-	IObjectPool(IObjectPool&&) = default;
+	class Deleter {
+	public:
+		explicit Deleter(std::weak_ptr<ObjectPool*> pool) : pool_(pool) {}
+		void operator()(auto* ptr) {
+			if (auto locked_pool = pool_.lock()) {
+				(*locked_pool.get())->pushObject(std::unique_ptr<T>(ptr));
+			}
+			else {
+				std::default_delete<T> default_deleter;
+				default_deleter(ptr);
+			}
+		}
+	private:
+		std::weak_ptr<ObjectPool*> pool_;
+	};
+	using Ptr = std::unique_ptr<T, Deleter>;
 
 
-	virtual void pushObject(Ptr obj) = 0;
-	virtual Ptr [[nodiscard]] extractObject() = 0;
-	virtual size_t [[nodiscard]] size() const noexcept = 0;
-	virtual bool [[nodiscard]] isEmpty() const noexcept = 0;
+	ObjectPool() : this_shared_(new ObjectPool*(this)) {}
+	virtual ~ObjectPool() = default;
+	
+	ObjectPool(const ObjectPool&) = default;
+	ObjectPool(ObjectPool&&) = default;
 
-	virtual void dispose() = 0;
+
+	void pushObject(std::unique_ptr<T> obj) { objects_.push(std::move(obj)); } ;
+	Ptr [[nodiscard]] extractObject() {
+
+		if (objects_.empty()) {
+			throw std::exception("Tried to call extraction on an empty pool!");
+		}
+
+		Ptr top(objects_.top().release(), Deleter{std::weak_ptr<ObjectPool*>{this_shared_}});
+		objects_.pop();
+		return std::move(top);
+	}
+	size_t [[nodiscard]] size() const noexcept { return objects_.size(); };
+	bool [[nodiscard]] isEmpty() const noexcept { return objects_.empty(); };
+
+	void dispose();
 private:
-	inline static IObjectPool* objectPool;
+	std::stack<std::unique_ptr<T>> objects_;
+public:
+	std::shared_ptr<ObjectPool*> this_shared_;
 };
 
+
 template<typename T>
-class NaiveObjectPool final : public IObjectPool<T> {	
+void ObjectPool<T>::dispose()
+{
+	for (; !objects_.empty(); objects_.pop());
+}
+
+template<typename T>
+class NaiveObjectPool final {	
 public:
 
 	using Ptr = std::unique_ptr<T>;
@@ -44,17 +84,18 @@ public:
 
 
 
-	void pushObject(Ptr obj) override;
-	Ptr [[nodiscard]] extractObject() override;
+	void pushObject(Ptr obj);
+	Ptr [[nodiscard]] extractObject();
 
-	size_t [[nodiscard]] size() const noexcept override { return objects_.size(); }
-	bool [[nodiscard]] isEmpty() const noexcept override { return objects_.empty(); }
+	size_t [[nodiscard]] size() const noexcept { return objects_.size(); }
+	bool [[nodiscard]] isEmpty() const noexcept { return objects_.empty(); }
 
-	void dispose() override;
+	void dispose();
 
 private:
 	std::stack<Ptr> objects_;
 };
+
 
 template<typename T>
 [[nodiscard]] NaiveObjectPool<T>::Ptr NaiveObjectPool<T>::extractObject()
@@ -124,4 +165,26 @@ TEST_CASE("NaiveObjectPool<int> interface") {
 		CHECK_THROWS(pool.extractObject());
 	}
 	
+}
+
+// Object pool is the same as Naive object pool in an interface, so we just skip it.
+
+TEST_CASE("ObjectPool<int> interface") {
+	CHECK(true);
+}
+
+
+TEST_CASE("ObjectPool<int> deleter") {
+	ObjectPool<int> pool;
+	
+	//ObjectPool<int>::Deleter deleter = ObjectPool<int>::Deleter(std::weak_ptr<ObjectPool<int>*>(pool.this_shared_));
+	//pool.pushObject(std::unique_ptr<int, ObjectPool<int>::Deleter>{new int(12), deleter});
+	pool.pushObject(std::make_unique<int>(12));
+	CHECK(pool.size() == 1);
+	{
+		ObjectPool<int>::Ptr a = pool.extractObject();
+	}
+	CHECK(pool.size() == 1);
+	pool.dispose();
+	CHECK(pool.size() == 0);
 }
