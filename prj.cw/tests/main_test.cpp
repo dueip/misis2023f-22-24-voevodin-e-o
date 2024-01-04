@@ -57,6 +57,7 @@ TEST_CASE("List files") {
 TEST_CASE("Translation units") {
 	CHECK(ve::fromKilobytes(1) == 1024);
 	CHECK(ve::fromMegabytes(1) == 1024 * 1024);
+	// Проверяем, равен ли 1 мегабайт 1024 килобайтам
 	CHECK(ve::fromMegabytes(1) == ve::fromKilobytes(1024));
 	CHECK(ve::fromGigabytes(1) == 1024 * 1024 * 1024);
 }
