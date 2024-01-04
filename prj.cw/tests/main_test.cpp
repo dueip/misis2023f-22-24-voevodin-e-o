@@ -1,4 +1,4 @@
-#define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
+﻿#define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include <doctest/doctest.h>
 #include <loader/loader.hpp>
 #include <algorithm>
@@ -75,6 +75,7 @@ TEST_CASE("Directory Loader") {
 	ve::DirectoryLoader dir_loader;
 
 	SUBCASE("DirectoryLoading, [loading]") {
+		//阿良々木さん
 		CHECK(dir_loader.loadFromDirectory("./"));
 		dir_loader.reset();
 		CHECK(dir_loader.loadFromDirectory(CMAKE_TEST_PATH));
@@ -96,3 +97,4 @@ TEST_CASE("Directory Loader") {
 		CHECK(dir_loader.copyData().size() == 0);
 	}
 }
+	
