@@ -75,7 +75,7 @@ TEST_CASE("Directory Loader") {
 	ve::DirectoryLoader dir_loader;
 
 	SUBCASE("DirectoryLoading, [loading]") {
-		//阿良々木さん
+		
 		CHECK(dir_loader.loadFromDirectory("./"));
 		dir_loader.reset();
 		CHECK(dir_loader.loadFromDirectory(CMAKE_TEST_PATH));
