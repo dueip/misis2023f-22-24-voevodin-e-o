@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #ifndef BRUH_HPP_2023_10_27
 #define BRUH_HPP_2023_10_27
@@ -31,6 +31,7 @@ namespace ve {
 		CannotParseImageFromFile,
 		UnsupportedExtension,
 		WasDirty,
+		SumOfFilesLargerThanAThreshold,
 		Unfiltered = ~0
 	};
 
@@ -44,6 +45,17 @@ namespace ve {
 			return !static_cast<bool>(code);
 		}
 	};
+
+
+	// TODO :all this should be in its own classes
+	inline constexpr [[nodiscard]] int64_t toKilobytes(int64_t bytes) noexcept {
+		return bytes >> 10;
+	}
+
+	inline constexpr [[nodiscard]] int64_t toMegabytes(int64_t bytes) noexcept {
+		return ve::toKilobytes(bytes) >> 10;
+	}
+
 
 	inline constexpr [[nodiscard]] int64_t fromKilobytes(int64_t kilobytes) noexcept {
 		return kilobytes << 10;
@@ -89,6 +101,31 @@ namespace ve {
 		
 	}
 
+
+	class Options final {
+	public:
+		Options(const Options&) = delete;
+		Options operator=(const Options&) = delete;
+
+
+		static Options& getInstance() {
+			static Options options;
+			return options;
+		}
+
+		constexpr int64_t [[nodiscard]] getChunkSize() const {
+			return ve::fromMegabytes(512);
+		}
+
+		constexpr int64_t [[nodiscard]] getMaxSize() const {
+			return ve::fromGigabytes(2);
+		}
+		
+	private:
+		Options() = default;
+	};
+
+
 	// Move only
 	class ILoader {
 	public:
@@ -119,6 +156,10 @@ namespace ve {
 		virtual [[nodiscard]] std::vector<cv::Mat> copyData() const noexcept = 0;
 
 		virtual constexpr [[nodiscard]] bool isExtensionSupported(const std::string& extension) const noexcept = 0;
+
+		virtual constexpr [[nodiscard]] int64_t getMaxChunkSize() const noexcept = 0;
+		
+		virtual [[nodiscard]] int64_t getCurrentSize() const noexcept = 0;
 	};
 
 	class TestLoader final : public ILoader {
@@ -198,11 +239,14 @@ namespace ve {
 
 
 		void reset() override { is_dirty_ = false; mats_.clear(); }
+
+		constexpr [[nodiscard]] int64_t getMaxChunkSize() const noexcept override { return chunk_size; }
+		[[nodiscard]] int64_t getCurrentSize() const noexcept override;
 	private:
 		std::vector<cv::Mat> mats_;
 		bool is_dirty_ = false;
 		// Should use OPENCV_IO_MAX_IMAGE_PIXELS here, but for some reason cannot find it?
-		constexpr inline static int64_t chunk_size = fromGigabytes(1);
+		const inline static int64_t chunk_size = Options::getInstance().getChunkSize();
 		// For now we'll go with only those 3 types, but we'll see.
 		const inline static std::unordered_set<std::string> extensions = { ".png", ".jpg", ".jpeg" };
 	};
@@ -229,7 +273,25 @@ namespace ve {
 			for (const auto& el : loaders) { if (el->isExtensionSupported(extension)) return true; } return false;
 		}
 		
+		constexpr [[nodiscard]] int64_t getMaxChunkSize() const noexcept {
+			return Options::getInstance().getChunkSize();
+		}
+		int64_t getCurrentSizeOfBlocks() const noexcept {
+			// potentially can overflow if we get big enough numbers
+			// but for now shouldn't worry since there's no way any picture file will outgrow 2^63 (~9 000 000 000) gigabytes
+			int64_t sum_of_sizes = 0;
+			for (const auto& loader : loaders) {
+				sum_of_sizes += loader->getCurrentSize();
+			}
+			return sum_of_sizes;
+		}
 	private:
+
+		// Mutable since we do want our getChunkSize function to be available anywhere
+		// -1 means that we don't have it cached just yet
+		mutable int64_t chunk_size_cached_ = -1;
+		
+
 		const std::vector<std::shared_ptr<ILoader>> loaders = {
 			std::make_shared<ImageLoader>()
 		};
@@ -248,7 +310,7 @@ namespace ve {
 
 }
 
-
+// wtf is this
 template<std::forward_iterator PathIt>
 ve::Error ve::DirectoryLoader::loadFromFiles(const PathIt& begin, const PathIt& end) {
 	if (isDirty()) {

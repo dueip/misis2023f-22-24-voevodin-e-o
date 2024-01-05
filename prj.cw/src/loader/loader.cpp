@@ -26,6 +26,20 @@ ve::Error ve::ImageLoader::loadFromFile(const ve::Path& file_path) {
 	return ve::ErrorCodes::OK;
 }
 
+int64_t ve::ImageLoader::getCurrentSize() const noexcept {
+	// TODO: check if this correct.
+	// Here I check the size by just getting its area and multiplying by sizeof(int) since
+	// Technically that's how a mat's stored in the memory,
+	// but I am not completely sure about that.
+	int64_t size_sum = 0;
+	for (const auto& el : mats_) {
+		// ?????
+		size_sum += el.elemSize() * el.total();
+		//size_sum += el.size().area() * sizeof(int);
+	}
+	return size_sum;
+}
+
 ve::Error ve::DirectoryLoader::loadFromDirectory(const ve::Path& file_path) {
 	if (isDirty()) {
 		return ve::ErrorCodes::WasDirty;
@@ -36,6 +50,9 @@ ve::Error ve::DirectoryLoader::loadFromDirectory(const ve::Path& file_path) {
 		for (const auto& entry : entries) {
 			if (loader->isExtensionSupported(entry.path().extension().string())) {
 				ve::Error err = loader->loadFromFile(entry.path());
+				if (getCurrentSizeOfBlocks() > Options::getInstance().getMaxSize()) {
+					throw std::exception("Dont load so much, geez");
+				}
 				if (err.code != ve::ErrorCodes::OK) return err;
 			}
 		}

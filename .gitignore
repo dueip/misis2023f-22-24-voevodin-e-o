@@ -39,3 +39,6 @@
 # CMake files
 out/
 .debug.txt
+
+# Ignore anything with a "local" prefix (since it's something that is not meant to run anywhere outside of my machine)
+local_*
