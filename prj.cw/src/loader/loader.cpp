@@ -1,4 +1,5 @@
 #include <loader/loader.hpp>
+#include <Utilities/Utilities.hpp>
 
 ve::Error ve::ImageLoader::loadFromFile(const ve::Path& file_path) {
 	if (!isExtensionSupported(file_path.extension().string())) {

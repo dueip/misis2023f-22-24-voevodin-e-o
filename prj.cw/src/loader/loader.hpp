@@ -9,122 +9,10 @@
 #include <opencv2/core/mat.hpp>
 #include <opencv2/imgcodecs.hpp>
 #include <unordered_set>
+#include <Options/Options.hpp>
 
 
 namespace ve {
-	inline constexpr char toLower(char a) noexcept {
-		if (a <= 'Z' && a >= 'A')
-			return a + ('a' - 'A');
-	}
-
-
-	constexpr inline std::string toLower(const std::string& str) {
-		std::string string_temp;
-		string_temp.reserve(str.size());
-		std::transform(str.begin(), str.end(), string_temp.begin(), [](char a) { return toLower(a); });
-		return string_temp;
-	}
-
-	enum class ErrorCodes {
-		OK = 0,
-		FileLargerThanAChunk,
-		CannotParseImageFromFile,
-		UnsupportedExtension,
-		WasDirty,
-		SumOfFilesLargerThanAThreshold,
-		Unfiltered = ~0
-	};
-
-	struct Error {
-		Error() = default;
-		Error(ErrorCodes code, const std::string& message) : code(code), message(message) {}
-		Error(ErrorCodes code) : code(code) {}
-		const ErrorCodes code;
-		const std::string message = "";
-		operator bool() {
-			return !static_cast<bool>(code);
-		}
-	};
-
-
-	// TODO :all this should be in its own classes
-	inline constexpr [[nodiscard]] int64_t toKilobytes(int64_t bytes) noexcept {
-		return bytes >> 10;
-	}
-
-	inline constexpr [[nodiscard]] int64_t toMegabytes(int64_t bytes) noexcept {
-		return ve::toKilobytes(bytes) >> 10;
-	}
-
-
-	inline constexpr [[nodiscard]] int64_t fromKilobytes(int64_t kilobytes) noexcept {
-		return kilobytes << 10;
-	}
-
-	inline constexpr [[nodiscard]] int64_t fromMegabytes(int64_t megabytes) noexcept {
-		return fromKilobytes(megabytes) << 10;
-	}
-
-	inline constexpr [[nodiscard]] int64_t fromGigabytes(int64_t gigabytes) noexcept {
-		return fromMegabytes(gigabytes) << 10;
-	}
-
-	enum class DirectoryIteration {
-		NORMAL = 0,
-		RECURSIVE = 1
-	};
-	namespace {
-		using Path = std::filesystem::path;
-		using DirectoryEntry = std::filesystem::directory_entry;
-	}
-	
-	inline std::vector<DirectoryEntry> listFiles(const Path& directory, DirectoryIteration it_type = DirectoryIteration::NORMAL) {
-		using namespace std::filesystem;
-		std::error_code err;
-
-		std::vector<DirectoryEntry> all_files;
-		
-		switch (it_type) {
-		case DirectoryIteration::NORMAL: 
-			for (auto& el : directory_iterator(directory)) {
-				all_files.push_back(el);
-			}
-			break;
-		case DirectoryIteration::RECURSIVE: 
-			for (auto& el : recursive_directory_iterator(directory)) {
-				all_files.push_back(el);
-			}
-			break;
-		}
-
-		return all_files;
-		
-	}
-
-
-	class Options final {
-	public:
-		Options(const Options&) = delete;
-		Options operator=(const Options&) = delete;
-
-
-		static Options& getInstance() {
-			static Options options;
-			return options;
-		}
-
-		constexpr int64_t [[nodiscard]] getChunkSize() const {
-			return ve::fromMegabytes(512);
-		}
-
-		constexpr int64_t [[nodiscard]] getMaxSize() const {
-			return ve::fromGigabytes(2);
-		}
-		
-	private:
-		Options() = default;
-	};
-
 
 	// Move only
 	class ILoader {
@@ -233,8 +121,17 @@ namespace ve {
 
 		bool isDirty() const noexcept { return is_dirty_; };
 
+		
 		[[nodiscard]] bool isExtensionSupported(const std::string& extension) const noexcept override {
-			return (extensions.find(extension) != extensions.end());
+			std::string fixed_extension;
+			fixed_extension.reserve(fixed_extension.size() + 1);
+			if (extension.size() > 0 && extension[0] != '.') {
+				fixed_extension = '.' + extension;
+			}
+			else {
+				fixed_extension = extension;
+			}
+			return (supported_extensions.find(fixed_extension) != supported_extensions.end());
 		}
 
 
@@ -245,10 +142,10 @@ namespace ve {
 	private:
 		std::vector<cv::Mat> mats_;
 		bool is_dirty_ = false;
-		// Should use OPENCV_IO_MAX_IMAGE_PIXELS here, but for some reason cannot find it?
+
 		const inline static int64_t chunk_size = Options::getInstance().getChunkSize();
 		// For now we'll go with only those 3 types, but we'll see.
-		const inline static std::unordered_set<std::string> extensions = { ".png", ".jpg", ".jpeg" };
+		const inline static std::unordered_set<std::string> supported_extensions = { ".png", ".jpg", ".jpeg" };
 	};
 
 	class DirectoryLoader final  {
@@ -257,6 +154,7 @@ namespace ve {
 		virtual ~DirectoryLoader() = default;
 
 		ve::Error loadFromDirectory(const Path& path);
+
 		template<std::forward_iterator PathIt>
 		ve::Error loadFromFiles(const PathIt& begin, const PathIt& end);
 
@@ -311,8 +209,9 @@ namespace ve {
 }
 
 // wtf is this
+// TOOD: should probably be the basic implementation for ever loadFromDirectory, but oh well??
 template<std::forward_iterator PathIt>
-ve::Error ve::DirectoryLoader::loadFromFiles(const PathIt& begin, const PathIt& end) {
+ve::Error ve::DirectoryLoader::loadFromFiles(const PathIt& begin, const PathIt& end) {	
 	if (isDirty()) {
 		return ve::ErrorCodes::WasDirty;
 	}
