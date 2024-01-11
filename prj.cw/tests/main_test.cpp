@@ -125,3 +125,11 @@ TEST_CASE("ImageWriter") {
 		CHECK(writer.saveMasks(data.cbegin(), data.cend()));
 	}
 }
+
+TEST_CASE("Dicom loader") {
+	ve::DicomLoader loader;
+
+	SUBCASE("Dicom loader, [Unable to read even 1 dcm file because this stupid library wouldnt work :)]") {
+		CHECK_FALSE(loader.loadFromFile(std::string(CMAKE_TEST_PATH) + "/sample_dicom/MRBRAIN.DCM"));
+	}
+}
