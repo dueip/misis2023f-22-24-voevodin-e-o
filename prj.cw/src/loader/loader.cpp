@@ -1,4 +1,5 @@
 #include <loader/loader.hpp>
+#include <Utilities/Utilities.hpp>
 
 ve::Error ve::ImageLoader::loadFromFile(const ve::Path& file_path) {
 	if (!isExtensionSupported(file_path.extension().string())) {
@@ -41,23 +42,14 @@ int64_t ve::ImageLoader::getCurrentSize() const noexcept {
 }
 
 ve::Error ve::DirectoryLoader::loadFromDirectory(const ve::Path& file_path) {
-	if (isDirty()) {
-		return ve::ErrorCodes::WasDirty;
+	std::vector<std::filesystem::directory_entry> entries = ve::listFiles(file_path);
+	
+	std::vector<std::filesystem::path> entries_path(entries.size());
+	for (auto& el : entries) {
+		entries_path.push_back(el.path());
 	}
 
-	std::vector<std::filesystem::directory_entry> entries = ve::listFiles(file_path);
-	for (auto& loader : loaders) {
-		for (const auto& entry : entries) {
-			if (loader->isExtensionSupported(entry.path().extension().string())) {
-				ve::Error err = loader->loadFromFile(entry.path());
-				if (getCurrentSizeOfBlocks() > Options::getInstance().getMaxSize()) {
-					throw std::exception("Dont load so much, geez");
-				}
-				if (err.code != ve::ErrorCodes::OK) return err;
-			}
-		}
-	}
-	return ve::ErrorCodes::OK;
+	return loadFromFiles(entries_path.begin(), entries_path.end());
 }
 
 
