@@ -148,6 +148,14 @@ namespace ve {
 		const inline static std::unordered_set<std::string> supported_extensions = { ".png", ".jpg", ".jpeg" };
 	};
 
+
+	class ImageStorage final {
+	public:
+	private:
+
+	};
+	
+
 	class DirectoryLoader final  {
 	public:
 		DirectoryLoader() = default;
@@ -159,13 +167,13 @@ namespace ve {
 		ve::Error loadFromFiles(const PathIt& begin, const PathIt& end);
 
 
-		[[nodiscard]] const std::vector<cv::Mat>& getData() const noexcept { return constructVector(); };
-		[[nodiscard]] std::vector<cv::Mat> copyData() const noexcept { return constructVector(); };
+		[[nodiscard]] const std::vector<cv::Mat>& getData() const noexcept { return cached_vector_; };
+		[[nodiscard]] std::vector<cv::Mat> copyData() const noexcept { return cached_vector_; };
 
 
 		bool isDirty() const noexcept { for (const auto& el : loaders) { if (el->isDirty()) return true; } return false; };
 
-		void reset() { for (auto& el : loaders) { el->reset(); } }
+		void reset() { cached_vector_.clear(); for (auto& el : loaders) { el->reset(); } }
 
 		constexpr [[nodiscard]] bool isExtensionSupported(const std::string& extension) const noexcept {
 			for (const auto& el : loaders) { if (el->isExtensionSupported(extension)) return true; } return false;
@@ -194,6 +202,9 @@ namespace ve {
 			std::make_shared<ImageLoader>()
 		};
 
+
+		std::vector<cv::Mat> cached_vector_;
+
 		constexpr [[nodiscard]] std::vector<cv::Mat> constructVector() const {
 			std::vector<cv::Mat> vec;
 			for (const auto& loader : loaders) {
@@ -210,8 +221,10 @@ namespace ve {
 
 // wtf is this
 // TOOD: should probably be the basic implementation for ever loadFromDirectory, but oh well??
+// Also should smack here some concept since it accepts only path and not directory entry(?weird?)
 template<std::forward_iterator PathIt>
 ve::Error ve::DirectoryLoader::loadFromFiles(const PathIt& begin, const PathIt& end) {	
+
 	if (isDirty()) {
 		return ve::ErrorCodes::WasDirty;
 	}
@@ -220,10 +233,14 @@ ve::Error ve::DirectoryLoader::loadFromFiles(const PathIt& begin, const PathIt& 
 		for (PathIt entry = begin; entry != end; ++entry) {	
 			if (loader->isExtensionSupported(entry->extension().string())) {
 				ve::Error err = loader->loadFromFile(*entry);
+				if (getCurrentSizeOfBlocks() > Options::getInstance().getMaxSize()) {
+					throw std::exception("Dont load so much, geez");
+				}
 				if (err.code != ve::ErrorCodes::OK) return err;
 			}
 		}
 	}
+	cached_vector_ = constructVector();
 	return ve::ErrorCodes::OK;
 }
 
