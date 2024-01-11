@@ -102,4 +102,26 @@ TEST_CASE("Directory Loader") {
 		CHECK(dir_loader.copyData().size() == 0);
 	}
 }
+
+TEST_CASE("ImageWriter") {
+	ve::ImageWriter writer(std::string(CMAKE_TEST_PATH) + "/test_masks/");
 	
+	ve::DirectoryLoader dir_loader;
+	
+	SUBCASE("Image Writer, [writing 1 cv::Mat to tests/masks]") {
+		const std::vector<std::filesystem::path> files{
+			std::string(CMAKE_TEST_PATH) + "images/1.jpg"
+		};
+		dir_loader.loadFromFiles(files.cbegin(), files.cend());
+		CHECK(writer.saveMasks(dir_loader.getData().cbegin(), dir_loader.getData().cend()));
+	}
+	SUBCASE("Image Writer, [writing 2 cv::Mat to tests/masks]") {
+		const std::vector<std::filesystem::path> files{
+			std::string(CMAKE_TEST_PATH) + "images/1.jpg",
+			std::string(CMAKE_TEST_PATH) + "images/3.png"
+		};
+		dir_loader.loadFromFiles(files.cbegin(), files.cend());
+		const auto& data = dir_loader.getData();
+		CHECK(writer.saveMasks(data.cbegin(), data.cend()));
+	}
+}

@@ -14,6 +14,90 @@
 
 namespace ve {
 
+	/*!
+		Класс, который предоставляет функции для сохранения масок в определенную папку, а также дальнейших их подгрузок.
+	*/
+	class ImageWriter {
+	public:
+		ImageWriter() = delete;
+		ImageWriter(const std::filesystem::path& path) {
+			setPath(path);
+		}
+		ImageWriter(ImageWriter&&) = default;
+		ImageWriter& operator=(ImageWriter&&) = default;
+
+		ImageWriter& operator=(const ImageWriter&) = delete;
+		ImageWriter(const ImageWriter&) = delete;
+
+		~ImageWriter() = default;
+
+
+		enum class Extensions {
+			JPG,
+			PNG
+		};
+
+		void setPath(const std::filesystem::path& path_to_add) noexcept {
+			// Если путь -- директория и при этом её не существует, то создаём его
+			if (!std::filesystem::exists(path_to_add)){
+				std::filesystem::create_directory(path_to_add);
+			}
+			cached_path_ = path_to_add;
+		}
+
+		/*!  \todo Добавить поддержку  нескольких расширений сразу
+		* Сохраняет маски, переданные в эту функцию, в кэшированную папку, заданную в конструкторе.
+		*
+		* \param [in] begin Итератор, указывающий на начало контейнера с масками
+		* \param [in] end Итератор, указывающий на конец контейнера с масками
+		* \param [in] extension Сохранять с каким расширением (см enum Extensions)
+		* \return OK если не было ошибки. UnsupportedExtension, если расширение по какой-либо причине не поддерживается. CannotParseImageFromFile, если по какой-то бэкэнд не может сохранить картинку.
+		*/
+		template<std::forward_iterator ForwardIt>
+		ve::Error saveMasks(const ForwardIt begin, const  ForwardIt end, Extensions extension = Extensions::JPG) const   {
+			return saveMasks(begin, end, cached_path_, extension);
+		}
+
+
+		/*!  \todo Добавить поддержку  нескольких расширений сразу
+		* Сохраняет маски, переданные в эту функцию, в целевую папку
+		* 
+		* \param [in] begin Итератор, указывающий на начало контейнера с масками
+		* \param [in] end Итератор, указывающий на конец контейнера с масками
+		* \param [in] path Целевая папка
+		* \param [in] extension Сохранять с каким расширением (см enum Extensions)
+		* \return OK если не было ошибки. UnsupportedExtension, если расширение по какой-либо причине не поддерживается. CannotParseImageFromFile, если по какой-то бэкэнд не может сохранить картинку.
+		*/
+		template<std::forward_iterator ForwardIt>
+		static ve::Error saveMasks(const ForwardIt begin, const ForwardIt end, const std::filesystem::path& path, Extensions extension = Extensions::JPG) {
+			for (ForwardIt it = begin; it != end; ++it) {
+				std::string string_extension;
+				switch (extension) {
+				case Extensions::JPG:
+					string_extension = ".jpg";
+					break;
+				case Extensions::PNG:
+					string_extension = ".png";
+					break;
+				default:
+					return ve::ErrorCodes::UnsupportedExtension;
+				}
+				
+				std::string where_to_save = path.string() + "/mask_" + std::to_string(masks_saved_count) + string_extension;
+				if (!cv::imwrite(where_to_save, *it)) {
+					return ve::ErrorCodes::CannotParseImageFromFile;
+				}
+				++masks_saved_count;
+
+			}
+			return ve::ErrorCodes::OK;
+		}
+ 
+	private:
+		std::filesystem::path cached_path_;
+		inline static int masks_saved_count = 0;
+	};
+
 	// Move only
 	class ILoader {
 	public:
