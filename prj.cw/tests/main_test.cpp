@@ -126,10 +126,36 @@ TEST_CASE("ImageWriter") {
 	}
 }
 
+
+
+
 TEST_CASE("Dicom loader") {
 	ve::DicomLoader loader;
 
 	SUBCASE("Dicom loader, [Unable to read even 1 dcm file because this stupid library wouldnt work :)]") {
 		CHECK_FALSE(loader.loadFromFile(std::string(CMAKE_TEST_PATH) + "/sample_dicom/MRBRAIN.DCM"));
 	}
+
+
+
+
+
+
+
+
+	cv::Mat a;
+	CHECK(a.empty());
+	a = cv::imread("C:/Users/Брат/source/repos/misis2023f-22-24-voevodin-e-o/prj.cw/tests/test_masks/mask_1.jpg");
+	MatButCooler c("C:/Users/Брат/source/repos/misis2023f-22-24-voevodin-e-o/prj.cw/tests/test_masks/mask_1.jpg");
+	cv::Mat d = c;
+	cv::Mat f = c;
+	CHECK(!d.empty());
+	CHECK(f.data == d.data);
+	CHECK_THROWS(c.markReadyToDelete());
+	cv::Mat b = a;
+	CHECK(!b.empty());
+	CHECK(a.data == b.data);
+	b.release();
+
+	
 }

@@ -14,6 +14,36 @@
 
 namespace ve {
 
+	class MatButCooler final {
+	public:
+		MatButCooler(const std::filesystem::path& path) {
+			path_to_the_mat = path;
+		}
+
+		operator cv::Mat() {
+			if (mat.empty()) {
+				mat = cv::imread(path_to_the_mat.string());
+			}
+			return mat;
+		}
+
+		void markReadyToDelete() {
+			// Just dropss the mat???
+			int refCount = (mat.u) ? ((mat.u)->refcount) : 0;
+			if (refCount > 1) {
+				throw std::exception("WHAT IS HAPPPENING THIS SHOULD HAVE NEVER BEEN THE CASE");
+			}
+			mat.release();
+
+			should_be_deleted = false;
+		}
+
+	private:
+		bool should_be_deleted = true;
+		cv::Mat mat;
+		std::filesystem::path path_to_the_mat;
+	};
+
 	/*!
 		Класс, который предоставляет функции для сохранения масок в определенную папку, а также дальнейших их подгрузок.
 	*/
