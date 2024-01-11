@@ -1,4 +1,5 @@
 #include <loader/loader.hpp>
+#include <Utilities/Utilities.hpp>
 
 ve::Error ve::ImageLoader::loadFromFile(const ve::Path& file_path) {
 	if (!isExtensionSupported(file_path.extension().string())) {
@@ -26,21 +27,29 @@ ve::Error ve::ImageLoader::loadFromFile(const ve::Path& file_path) {
 	return ve::ErrorCodes::OK;
 }
 
+int64_t ve::ImageLoader::getCurrentSize() const noexcept {
+	// TODO: check if this correct.
+	// Here I check the size by just getting its area and multiplying by sizeof(int) since
+	// Technically that's how a mat's stored in the memory,
+	// but I am not completely sure about that.
+	int64_t size_sum = 0;
+	for (const auto& el : mats_) {
+		// ?????
+		size_sum += el.elemSize() * el.total();
+		//size_sum += el.size().area() * sizeof(int);
+	}
+	return size_sum;
+}
+
 ve::Error ve::DirectoryLoader::loadFromDirectory(const ve::Path& file_path) {
-	if (isDirty()) {
-		return ve::ErrorCodes::WasDirty;
+	std::vector<std::filesystem::directory_entry> entries = ve::listFiles(file_path);
+	
+	std::vector<std::filesystem::path> entries_path(entries.size());
+	for (auto& el : entries) {
+		entries_path.push_back(el.path());
 	}
 
-	std::vector<std::filesystem::directory_entry> entries = ve::listFiles(file_path);
-	for (auto& loader : loaders) {
-		for (const auto& entry : entries) {
-			if (loader->isExtensionSupported(entry.path().extension().string())) {
-				ve::Error err = loader->loadFromFile(entry.path());
-				if (err.code != ve::ErrorCodes::OK) return err;
-			}
-		}
-	}
-	return ve::ErrorCodes::OK;
+	return loadFromFiles(entries_path.begin(), entries_path.end());
 }
 
 

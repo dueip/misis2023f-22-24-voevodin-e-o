@@ -1,4 +1,4 @@
-#define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
+﻿#define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include <doctest/doctest.h>
 #include <loader/loader.hpp>
 #include <algorithm>
@@ -57,8 +57,13 @@ TEST_CASE("List files") {
 TEST_CASE("Translation units") {
 	CHECK(ve::fromKilobytes(1) == 1024);
 	CHECK(ve::fromMegabytes(1) == 1024 * 1024);
+	// Проверяем, равен ли 1 мегабайт 1024 килобайтам
 	CHECK(ve::fromMegabytes(1) == ve::fromKilobytes(1024));
 	CHECK(ve::fromGigabytes(1) == 1024 * 1024 * 1024);
+	CHECK(ve::fromKilobytes(1) + 512 == 1536);
+
+	CHECK(ve::toKilobytes(1024) == 1);
+	CHECK(ve::toMegabytes(ve::fromMegabytes(1)) == 1);
 }
 
 TEST_CASE("Image loader") {
@@ -75,6 +80,7 @@ TEST_CASE("Directory Loader") {
 	ve::DirectoryLoader dir_loader;
 
 	SUBCASE("DirectoryLoading, [loading]") {
+		
 		CHECK(dir_loader.loadFromDirectory("./"));
 		dir_loader.reset();
 		CHECK(dir_loader.loadFromDirectory(CMAKE_TEST_PATH));
@@ -94,5 +100,28 @@ TEST_CASE("Directory Loader") {
 		CHECK(!err);
 		CHECK(err.message == std::string(CMAKE_TEST_PATH) + "images/bugged_images\\1.jpg");
 		CHECK(dir_loader.copyData().size() == 0);
+	}
+}
+
+TEST_CASE("ImageWriter") {
+	ve::ImageWriter writer(std::string(CMAKE_TEST_PATH) + "/test_masks/");
+	
+	ve::DirectoryLoader dir_loader;
+	
+	SUBCASE("Image Writer, [writing 1 cv::Mat to tests/masks]") {
+		const std::vector<std::filesystem::path> files{
+			std::string(CMAKE_TEST_PATH) + "images/1.jpg"
+		};
+		dir_loader.loadFromFiles(files.cbegin(), files.cend());
+		CHECK(writer.saveMasks(dir_loader.getData().cbegin(), dir_loader.getData().cend()));
+	}
+	SUBCASE("Image Writer, [writing 2 cv::Mat to tests/masks]") {
+		const std::vector<std::filesystem::path> files{
+			std::string(CMAKE_TEST_PATH) + "images/1.jpg",
+			std::string(CMAKE_TEST_PATH) + "images/3.png"
+		};
+		dir_loader.loadFromFiles(files.cbegin(), files.cend());
+		const auto& data = dir_loader.getData();
+		CHECK(writer.saveMasks(data.cbegin(), data.cend()));
 	}
 }
