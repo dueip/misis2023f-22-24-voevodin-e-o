@@ -24,7 +24,7 @@ ve::Error ve::ImageLoader::loadFromFile(const ve::Path& file_path) {
 	for (auto& el : temp) {
 		mats_.emplace_back(std::move(el));
 	}
-	/// Загружаем в память достаточное количество Мэтов, основываясь на том, какой у нас chunkSize.
+	/// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅ chunkSize.
 	int i = 0;
 	for (i = 0; getCurrentSize() < Options::getInstance().getChunkSize() && i < mats_.size(); ++i) {
 		mats_[i].preLoad();

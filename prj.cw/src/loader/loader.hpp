@@ -15,23 +15,31 @@
 
 namespace ve {
 
+	//! Возвращает размер cv::Mat по формуле mat.elemSize() * mat.total();
 	inline [[nodiscard]] int64_t calculateMatSize(const cv::Mat& mat) noexcept {
 		return mat.elemSize() * mat.total();
 	}
 
+
+	//! Класс, предоставляющий интерфейс для Ленивой загрузки Mat(по необходимости)
 	class MatButCooler final {
 	public:
 		MatButCooler(const std::filesystem::path& path) {
 			path_to_the_mat = path;
 		}
 
+		//! Приведение к cv::Mat, которое загружает низлежащий cv::Mat по необходимости.
+		//! Устанавливает флаг is_loaded в true
 		operator cv::Mat() const {
 			if (mat.empty()) {
 				mat = cv::imread(path_to_the_mat.string());
 			}
+			is_loaded = true;
 			return mat;
 		}
 
+		//! Загрузка низлежего cv::Mat.
+		//! Устанавливает флаг is_loaded в true
 		void preLoad() {
 			if (mat.empty()) {
 				mat = cv::imread(path_to_the_mat.string());
@@ -43,6 +51,7 @@ namespace ve {
 			return is_loaded;
 		}
 
+		//! Технически является удалением, однако из-за особенности работы cv::Mat просто опускает из данного хранения.
 		void markReadyToDelete() {
 			// Just dropss the mat???
 			int refCount = (mat.u) ? ((mat.u)->refcount) : 0;
@@ -55,7 +64,7 @@ namespace ve {
 		}
 
 	private:
-		bool is_loaded = false;
+		mutable bool is_loaded = false;
 		mutable cv::Mat mat;
 		std::filesystem::path path_to_the_mat;
 	};
@@ -308,17 +317,26 @@ namespace ve {
 		
 		virtual ~ImageLoader() = default;
 
+		//! Возвращает <i>доступные</i> данные. Т.е. возвращает только те cv::Mat, которые уже загружены в память.
 		[[nodiscard]] std::vector<cv::Mat>& getData() noexcept { is_dirty_ = true; getAvailableMats(); return cached_mats_; };
+		//! Возвращает <i>доступные</i> данные. Т.е. возвращает только те cv::Mat, которые уже загружены в память.
 		[[nodiscard]] const std::vector<cv::Mat>& getData() const noexcept { return getAvailableMats(); };
+		//! Возвращает <i>доступные</i> данные. Т.е. возвращает только те cv::Mat, которые уже загружены в память.
 		[[nodiscard]] std::vector<cv::Mat> copyData() const noexcept { return getAvailableMats(); };
 
+		
 		[[nodiscard]] int64_t getLoadedSize() const noexcept { return mats_.size(); }
+
 
 		ve::Error loadFromFile(const Path& path) override;
 
 		bool isDirty() const noexcept { return is_dirty_; };
 
 		
+		/*! Возвращает true только для jpg, jpeg и png
+		* \param [in] extension Расширение для проверки. При этом расширение может быть в любом формате(как ".jpg", так и "jpg"), а также любой строчности букв.
+		* \returns Поддерживается ли расширение или нет.
+		*/
 		[[nodiscard]] bool isExtensionSupported(const std::string& extension) const noexcept override {
 			std::string fixed_extension;
 			fixed_extension.reserve(fixed_extension.size() + 1);
@@ -328,7 +346,7 @@ namespace ve {
 			else {
 				fixed_extension = extension;
 			}
-			return (supported_extensions.find(fixed_extension) != supported_extensions.end());
+			return (supported_extensions.find(ve::toLower(fixed_extension)) != supported_extensions.end());
 		}
 
 		[[nodiscard]] int64_t getCursor() const noexcept override {
@@ -341,6 +359,9 @@ namespace ve {
 		constexpr [[nodiscard]] int64_t getMaxChunkSize() const noexcept override { return chunk_size; }
 		[[nodiscard]] int64_t getCurrentSize() const noexcept override;
 
+		/*!
+		* Возвращает cv::Mat по индексу, при этом загружая в память область number_of_images_in_a_chunk и разгружая остальные. 
+		*/
 		[[nodiscard]] cv::Mat at(int64_t index) {
 			cached_mats_.clear();
 			for (auto& el : mats_) {
@@ -394,13 +415,31 @@ namespace ve {
 	};
 	
 
+	/*!
+	* Класс, отвечающий за загрузку определенной папки. Несмотря на своё название, не относится к ILoader(хотя и имеет схожий интерфейс).
+	* Сам по себе он не производит загрузку данных, а полагается на использование массива загрузчиков. Т.е. этот класс является просто упрощённым интерфейсом для использование ImageLoader'а.
+	* В себе хранит только кэшированные данные 1 чанка, по запросу выдаёт эти же данные. 
+	* При этом можно попросить сдвинуться на 1 чанк.
+	*/
+
 	class DirectoryLoader final  {
 	public:
 		DirectoryLoader() = default;
 		virtual ~DirectoryLoader() = default;
 
+		/*!
+		* Загружает данные из папки
+		* Загрузка невозможна, если флаг Dirty активен
+		* \param [in] path Папка, откуда нужно загрузить данные.
+		*/
 		ve::Error loadFromDirectory(const Path& path);
 
+		/*!
+		* Загружает несколько файлов.
+		* Загрузка невозможна, если флаг Dirty активен.
+		* \param [in] begin Forward Итератор, указывающий на начало последовательности
+		* \param [in] end Forward Итератор, указывабщий на конец последовательности
+		*/
 		template<std::forward_iterator PathIt>
 		ve::Error loadFromFiles(const PathIt& begin, const PathIt& end);
 
@@ -408,11 +447,12 @@ namespace ve {
 		[[nodiscard]] const std::vector<cv::Mat>& getData() const noexcept { constructVector(); return cached_vector_; };
 		[[nodiscard]] std::vector<cv::Mat> copyData() const noexcept { return constructVector(); };
 
-
+		
 		bool isDirty() const noexcept { for (const auto& el : loaders) { if (el->isDirty()) return true; } return false; };
 
 		void reset() { cached_vector_.clear(); for (auto& el : loaders) { el->reset(); } }
 
+		//! Возвращает комбинацию всех доступных расширений низлежащих загрузчиков
 		constexpr [[nodiscard]] bool isExtensionSupported(const std::string& extension) const noexcept {
 			for (const auto& el : loaders) { if (el->isExtensionSupported(extension)) return true; } return false;
 		}
@@ -430,6 +470,7 @@ namespace ve {
 			return sum_of_sizes;
 		}
 
+		//! Запрашивает новый чанк и удаляет старый. При этом курсор передвигается на конец даты.
 		std::vector<cv::Mat> requestNewChunk() {
 			cached_vector_.clear();
 			for (auto& loader : loaders) {
@@ -471,9 +512,7 @@ namespace ve {
 
 }
 
-// wtf is this
-// TOOD: should probably be the basic implementation for ever loadFromDirectory, but oh well??
-// Also should smack here some concept since it accepts only path and not directory entry(?weird?)
+
 template<std::forward_iterator PathIt>
 ve::Error ve::DirectoryLoader::loadFromFiles(const PathIt& begin, const PathIt& end) {	
 
