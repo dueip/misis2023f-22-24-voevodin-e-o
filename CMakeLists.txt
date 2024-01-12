@@ -52,10 +52,12 @@ endif()
 endif()
 
 
-install(TARGETS unit_tests)
-#install(DIRECTORY ${CMAKE_SOURCE_DIR}/prj.cw/tests/test_dir
- # DESTINATION prj.cw/tests/test_dir
-#)
+install(TARGETS unit_tests
+DESTINATION bin)
+
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/test_sources
+  DESTINATION test_sources
+)
 
 install(DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG}/
       DESTINATION bin
