@@ -73,6 +73,24 @@ TEST_CASE("Image loader") {
 	SUBCASE("Check if everything loads correctly") {
 		CHECK_FALSE(image_loader.loadFromFile("./"));
 		CHECK(image_loader.loadFromFile("./").code == ve::ErrorCodes::UnsupportedExtension);
+		const std::vector<std::filesystem::path> files{
+			std::string(CMAKE_TEST_PATH) + "images/1.jpg",
+			std::string(CMAKE_TEST_PATH) + "images/3.png"
+		};
+		for (const auto& el : files) {
+			CHECK(image_loader.loadFromFile(el));
+		}
+		CHECK(image_loader.getLoadedSize() == 2);
+		CHECK(image_loader.getLoadedSize() == image_loader.getData().size());
+		cv::Mat mat1 = image_loader.at(1);
+		CHECK(!mat1.empty());
+		CHECK(image_loader.getLoadedSize() == 2);
+		cv::Mat mat = image_loader.at(0);
+		CHECK(!mat.empty());
+		CHECK(image_loader.getLoadedSize() == 2);
+		
+		image_loader.reset();
+		
 	}
 }
 
@@ -90,6 +108,7 @@ TEST_CASE("Directory Loader") {
 			std::string(CMAKE_TEST_PATH) + "images/1.jpg",
 			std::string(CMAKE_TEST_PATH) + "images/3.png"
 		};
+
 		CHECK(dir_loader.loadFromFiles(files.cbegin(), files.cend()));
 		CHECK(dir_loader.copyData().size() == 2);
 		dir_loader.reset();
@@ -100,6 +119,17 @@ TEST_CASE("Directory Loader") {
 		CHECK(!err);
 		CHECK(err.message == std::string(CMAKE_TEST_PATH) + "images/bugged_images\\1.jpg");
 		CHECK(dir_loader.copyData().size() == 0);
+		dir_loader.reset();
+
+		SUBCASE("DirectoryLoading, [Load a big amount of data]") {
+			CHECK(dir_loader.loadFromFiles(files.cbegin(), files.cend()));
+			const std::string big_data_path = std::string(CMAKE_TEST_PATH) + "/big_data/";
+			const auto& data = dir_loader.getData();
+			ve::generateTestData(big_data_path, data[0]);
+			dir_loader.reset();
+			dir_loader.loadFromDirectory(big_data_path);
+			CHECK(dir_loader.getData().size() == ceil(ve::fromMegabytes(512) / static_cast<float>(ve::calculateMatSize(dir_loader.getData()[0]))));
+		}
 	}
 }
 
@@ -126,10 +156,14 @@ TEST_CASE("ImageWriter") {
 	}
 }
 
+
+
+
 TEST_CASE("Dicom loader") {
 	ve::DicomLoader loader;
 
 	SUBCASE("Dicom loader, [Unable to read even 1 dcm file because this stupid library wouldnt work :)]") {
 		CHECK_FALSE(loader.loadFromFile(std::string(CMAKE_TEST_PATH) + "/sample_dicom/MRBRAIN.DCM"));
 	}
+	
 }

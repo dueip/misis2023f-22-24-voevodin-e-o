@@ -11,9 +11,8 @@
 #include <vector>
 #include <string_view>
 #include <filesystem>
-#include <opencv2/core/mat.hpp>
-#include <opencv2/imgcodecs.hpp>
 #include <unordered_set>
+
 namespace ve {
 	// Works only with unicode
 	inline constexpr char toLower(char a) noexcept {
@@ -21,6 +20,8 @@ namespace ve {
 			return a + ('a' - 'A');
 		return a;
 	}
+
+
 
 	// Works only with unicode!
 	constexpr inline std::string toLower(const std::string& str) {
@@ -70,6 +71,9 @@ namespace ve {
 		return ve::toKilobytes(bytes) >> 10;
 	}
 
+	inline constexpr [[nodiscard]] int64_t toGigabytes(int64_t bytes) noexcept {
+		return ve::toMegabytes(bytes) >> 10;
+	}
 
 	inline constexpr [[nodiscard]] int64_t fromKilobytes(int64_t kilobytes) noexcept {
 		return kilobytes << 10;

@@ -28,7 +28,7 @@ namespace ve{
 		}
 
 		constexpr int64_t [[nodiscard]] getMaxSize() const {
-			return ve::fromGigabytes(1);
+			return ve::fromGigabytes(2);
 		}
 
 	private:
