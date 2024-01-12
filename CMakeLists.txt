@@ -55,9 +55,9 @@ endif()
 install(TARGETS unit_tests
 DESTINATION bin)
 
-install(DIRECTORY ${CMAKE_SOURCE_DIR}/test_sources
-  DESTINATION test_sources
-)
+#install(DIRECTORY ${CMAKE_SOURCE_DIR}/test_sources
+ # DESTINATION test_sources
+#)
 
 install(DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG}/
       DESTINATION bin
