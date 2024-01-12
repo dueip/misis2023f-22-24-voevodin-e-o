@@ -52,6 +52,7 @@ endif()
 endif()
 
 
+install(TARGETS unit_tests)
 #install(DIRECTORY ${CMAKE_SOURCE_DIR}/prj.cw/tests/test_dir
  # DESTINATION prj.cw/tests/test_dir
 #)
