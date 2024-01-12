@@ -18,9 +18,14 @@ if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
   set(CMAKE_INSTALL_PREFIX "${CMAKE_SOURCE_DIR}/install" CACHE PATH "..." FORCE)
 endif()
 
+option(BILD_DOCUMENTATION "Also build documentation" off)
+
 find_package(OpenCV REQUIRED)
 find_package(doctest CONFIG REQUIRED)
+
+if (BILD_DOCUMENTATION)
 find_package(Doxygen)
+endif()
 
 option(BUILD_ONLY_LIBRARY "Only build loader" off)
 if (BUILD_ONLY_LIBRARY)
@@ -30,7 +35,7 @@ else()
 	add_subdirectory(prj.cw)
 endif()
 
-
+if (BILD_DOCUMENTATION)
 if (DOXYGEN_FOUND) 
     set(DOXYGEN_IN ${CMAKE_CURRENT_SOURCE_DIR}/prj.cw/Doxyfile)
     set(DOXYGEN_CONFIGURED_INPUT ${DOXYGEN_IN})
@@ -44,9 +49,8 @@ if (DOXYGEN_FOUND)
      install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/documentation
                DESTINATION docs)
 endif()
+endif()
 
-install(TARGETS unit_tests
-DESTINATION bin)
 
 #install(DIRECTORY ${CMAKE_SOURCE_DIR}/prj.cw/tests/test_dir
  # DESTINATION prj.cw/tests/test_dir

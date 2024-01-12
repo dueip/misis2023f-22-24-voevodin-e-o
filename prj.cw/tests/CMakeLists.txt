@@ -11,6 +11,8 @@ add_executable(unit_tests main_test.cpp)
 target_link_libraries(unit_tests doctest::doctest loader)
 
 
+install(TARGETS unit_tests
+DESTINATION bin)
 	#add_executable(unit_tests ${sources_tests} ${sources})
 #	target_compile_definitions(unit_tests PUBLIC UNIT_TESTS)
 	# set_target_properties(loading_project PROPERTIES ENABLE_EXPORTS on)
