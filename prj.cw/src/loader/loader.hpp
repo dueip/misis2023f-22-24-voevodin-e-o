@@ -170,14 +170,38 @@ namespace ve {
 		[[nodiscard]] std::vector<cv::Mat>& getData() noexcept { is_dirty_ = true; return mats_; };
 		[[nodiscard]] const std::vector<cv::Mat>& getData() const noexcept { return mats_; };
 		[[nodiscard]] std::vector<cv::Mat> copyData() const noexcept { return mats_; };
-
+		
 		// TODO: implement this
-		ve::Error loadFromFile(const Path& path) override { return ve::ErrorCodes::Unfiltered; }
+		ve::Error loadFromFile(const Path& path) override {
+			//if (isExtensionSupported(path.extension().string())) {
+			//	return ve::ErrorCodes::UnsupportedExtension;
+			//}
+			//DicomImage image(path.string().c_str());
+			//if (image.getStatus() != EIS_Normal) {
+			//	//! \todo Add support for  different reasons why it's not possible to read the dicom.
+			//	return ve::ErrorCodes::CannotParseImageFromFile;
+			//}
+
+			//cv::Mat mat(int(image.getWidth()), int(image.getHeight()), CV_8U, (uchar*)image.getOutputData(8));
+			//mats_.push_back(mat)
+			return ve::ErrorCodes::CannotParseImageFromFile;
+		}
 
 		bool isDirty() const noexcept { return is_dirty_; };
 		
 		constexpr [[nodiscard]] bool isExtensionSupported(const std::string& extension) const noexcept override {
 			return extension == ".dcm";
+		}
+
+		void reset() override { is_dirty_ = false; mats_.clear(); }
+
+		constexpr [[nodiscard]] int64_t getMaxChunkSize() const noexcept override { return Options::getInstance().getChunkSize(); }
+		[[nodiscard]] int64_t getCurrentSize() const noexcept override {
+			int64_t size_sum = 0;
+			for (const auto& el : mats_) {
+				size_sum += el.elemSize() * el.total();
+			}
+			return size_sum;
 		}
 
 	private:
