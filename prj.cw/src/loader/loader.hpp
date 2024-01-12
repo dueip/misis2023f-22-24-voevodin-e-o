@@ -398,6 +398,9 @@ namespace ve {
 			}
 			return sum_of_sizes;
 		}
+
+		std::vector<cv::Mat> requestNewChunk
+
 	private:
 
 		// Mutable since we do want our getChunkSize function to be available anywhere
