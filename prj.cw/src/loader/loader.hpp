@@ -10,9 +10,14 @@
 #include <opencv2/imgcodecs.hpp>
 #include <unordered_set>
 #include <Options/Options.hpp>
+#include <iostream>
 
 
 namespace ve {
+
+	inline [[nodiscard]] int64_t calculateMatSize(const cv::Mat& mat) noexcept {
+		return mat.elemSize() * mat.total();
+	}
 
 	class MatButCooler final {
 	public:
@@ -20,11 +25,22 @@ namespace ve {
 			path_to_the_mat = path;
 		}
 
-		operator cv::Mat() {
+		operator cv::Mat() const {
 			if (mat.empty()) {
 				mat = cv::imread(path_to_the_mat.string());
 			}
 			return mat;
+		}
+
+		void preLoad() {
+			if (mat.empty()) {
+				mat = cv::imread(path_to_the_mat.string());
+			}
+			is_loaded = true;
+		}
+
+		[[nodiscard]] bool isLoaded() const noexcept {
+			return is_loaded;
 		}
 
 		void markReadyToDelete() {
@@ -35,12 +51,12 @@ namespace ve {
 			}
 			mat.release();
 
-			should_be_deleted = false;
+			is_loaded = false;
 		}
 
 	private:
-		bool should_be_deleted = true;
-		cv::Mat mat;
+		bool is_loaded = false;
+		mutable cv::Mat mat;
 		std::filesystem::path path_to_the_mat;
 	};
 
@@ -127,6 +143,25 @@ namespace ve {
 		std::filesystem::path cached_path_;
 		inline static int masks_saved_count = 0;
 	};
+
+
+	inline void generateTestData(const std::filesystem::path& path_to_test_folder, cv::Mat test_mat, int64_t size_of_test_data = ve::fromGigabytes(1)) {
+		if (std::filesystem::exists(path_to_test_folder) && std::filesystem::is_directory(path_to_test_folder)) {
+			if (!std::filesystem::is_empty(path_to_test_folder)) {
+				return;
+			}
+		}
+		ImageWriter writer(path_to_test_folder);
+		int64_t how_much_images_should_be_in_the_folder = size_of_test_data / ve::calculateMatSize(test_mat);
+		std::vector<cv::Mat> a;
+		a.reserve(how_much_images_should_be_in_the_folder);
+		for (int i = 0; i < how_much_images_should_be_in_the_folder; ++i) {
+			a.push_back(test_mat);
+		}
+		
+		writer.saveMasks(a.begin(), a.end());
+	}
+
 
 	// Move only
 	class ILoader {
@@ -251,9 +286,11 @@ namespace ve {
 		
 		virtual ~ImageLoader() = default;
 
-		[[nodiscard]] std::vector<cv::Mat>& getData() noexcept { is_dirty_ = true; return mats_; };
-		[[nodiscard]] const std::vector<cv::Mat>& getData() const noexcept { return mats_; };
-		[[nodiscard]] std::vector<cv::Mat> copyData() const noexcept { return mats_; };
+		[[nodiscard]] std::vector<cv::Mat>& getData() noexcept { is_dirty_ = true; getAvailableMats(); return cached_mats_; };
+		[[nodiscard]] const std::vector<cv::Mat>& getData() const noexcept { return getAvailableMats(); };
+		[[nodiscard]] std::vector<cv::Mat> copyData() const noexcept { return getAvailableMats(); };
+
+		[[nodiscard]] int64_t getLoadedSize() const noexcept { return mats_.size(); }
 
 		ve::Error loadFromFile(const Path& path) override;
 
@@ -273,17 +310,49 @@ namespace ve {
 		}
 
 
-		void reset() override { is_dirty_ = false; mats_.clear(); }
+		void reset() override { is_dirty_ = false; mats_.clear(); cached_mats_.clear(); }
 
 		constexpr [[nodiscard]] int64_t getMaxChunkSize() const noexcept override { return chunk_size; }
 		[[nodiscard]] int64_t getCurrentSize() const noexcept override;
+
+		[[nodiscard]] cv::Mat at(int64_t index) {
+			cached_mats_.clear();
+			//TODO: check if correct
+			for (int i = index - number_of_images_in_a_chunk / 2; i < index + number_of_images_in_a_chunk / 2; ++i) {
+				if (i < 0)
+					continue;
+				if (i > mats_.size())
+					break;
+				mats_[i].preLoad();
+			}
+			cursor = index;
+			
+			return getAvailableMats()[index];
+		}
 	private:
-		std::vector<cv::Mat> mats_;
+
+		std::vector<cv::Mat> getAvailableMats() const {
+			if (cached_mats_.empty()) {
+				for (const auto& el : mats_) {
+					if (el.isLoaded()) {
+						cached_mats_.push_back(static_cast<cv::Mat>(el));
+					}
+				}
+			}
+			return cached_mats_;
+		}
+
+		mutable std::vector<cv::Mat> cached_mats_;
+
+		std::vector<MatButCooler> mats_;
 		bool is_dirty_ = false;
 
 		const inline static int64_t chunk_size = Options::getInstance().getChunkSize();
 		// For now we'll go with only those 3 types, but we'll see.
 		const inline static std::unordered_set<std::string> supported_extensions = { ".png", ".jpg", ".jpeg" };
+
+		int64_t number_of_images_in_a_chunk = 0;
+		int64_t cursor = 0;
 	};
 
 
@@ -305,8 +374,8 @@ namespace ve {
 		ve::Error loadFromFiles(const PathIt& begin, const PathIt& end);
 
 
-		[[nodiscard]] const std::vector<cv::Mat>& getData() const noexcept { return cached_vector_; };
-		[[nodiscard]] std::vector<cv::Mat> copyData() const noexcept { return cached_vector_; };
+		[[nodiscard]] const std::vector<cv::Mat>& getData() const noexcept { constructVector(); return cached_vector_; };
+		[[nodiscard]] std::vector<cv::Mat> copyData() const noexcept { return constructVector(); };
 
 
 		bool isDirty() const noexcept { for (const auto& el : loaders) { if (el->isDirty()) return true; } return false; };
@@ -341,17 +410,21 @@ namespace ve {
 		};
 
 
-		std::vector<cv::Mat> cached_vector_;
+		mutable std::vector<cv::Mat> cached_vector_;
 
 		constexpr [[nodiscard]] std::vector<cv::Mat> constructVector() const {
-			std::vector<cv::Mat> vec;
-			for (const auto& loader : loaders) {
-				const std::vector<cv::Mat>& loader_data = loader->getData();
-				for (const cv::Mat& mat : loader_data) {
-					vec.push_back(mat);
+			if (cached_vector_.empty()) {
+				cached_vector_.clear();
+				std::vector<cv::Mat> vec;
+				for (const auto& loader : loaders) {
+					const std::vector<cv::Mat>& loader_data = loader->getData();
+					for (const cv::Mat& mat : loader_data) {
+						vec.push_back(mat);
+					}
 				}
+				cached_vector_ = std::move(vec);
 			}
-			return vec;
+			return cached_vector_;
 		}
 	};
 
