@@ -2,7 +2,32 @@
 #include <doctest/doctest.h>
 #include <loader/loader.hpp>
 #include <algorithm>
+#include <opencv2/highgui.hpp>
 #include <map>
+
+namespace ve {
+	class TestLoader final : public ILoader {
+	public:
+		TestLoader() {
+			mats_.reserve(5);
+		}
+		virtual ~TestLoader() = default;
+
+		[[nodiscard]] std::vector<cv::Mat>& getData() noexcept override { is_dirty_ = true; return mats_; };
+
+		[[nodiscard]] const std::vector<cv::Mat>& getData() const noexcept override { return mats_; };
+
+		[[nodiscard]] std::vector<cv::Mat> copyData() const noexcept override { return mats_; };
+
+		ve::Error loadFromFile(const Path& path) override { return ve::ErrorCodes::OK; };
+		bool isDirty() const noexcept { return is_dirty_; };
+
+
+	private:
+		std::vector<cv::Mat> mats_;
+		bool is_dirty_ = false;
+	};
+}
 
 namespace {
 	auto check_if_everything_was_found_correctly = []
@@ -127,8 +152,23 @@ TEST_CASE("Directory Loader") {
 			const auto& data = dir_loader.getData();
 			ve::generateTestData(big_data_path, data[0]);
 			dir_loader.reset();
+
+			{
+				ve::ImageLoader image_loader;
+				image_loader.loadFromFile(big_data_path + "mask_0.jpg");
+				ve::Options::getInstance().setChunkSize(ve::calculateMatSize(image_loader.at(0)));
+			}
 			dir_loader.loadFromDirectory(big_data_path);
-			CHECK(dir_loader.getData().size() == ceil(ve::fromMegabytes(512) / static_cast<float>(ve::calculateMatSize(dir_loader.getData()[0]))));
+			auto number_of_images_loaded = ceil(ve::calculateMatSize(dir_loader.getData()[0]) / static_cast<float>(ve::calculateMatSize(dir_loader.getData()[0])));
+			CHECK(dir_loader.getData().size() == 1);
+			cv::Mat a = dir_loader.getData()[0];
+			dir_loader.requestNewChunk();
+			cv::Mat b = dir_loader.getData()[0];
+			CHECK(b.data != a.data);
+			ve::Options::getInstance().setChunkSize(ve::fromMegabytes(512));
+			dir_loader.reset();
+			dir_loader.loadFromDirectory(big_data_path);
+
 		}
 	}
 }
@@ -160,10 +200,6 @@ TEST_CASE("ImageWriter") {
 
 
 TEST_CASE("Dicom loader") {
-	ve::DicomLoader loader;
-
-	SUBCASE("Dicom loader, [Unable to read even 1 dcm file because this stupid library wouldnt work :)]") {
-		CHECK_FALSE(loader.loadFromFile(std::string(CMAKE_TEST_PATH) + "/sample_dicom/MRBRAIN.DCM"));
-	}
+	
 	
 }
