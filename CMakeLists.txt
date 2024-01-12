@@ -23,6 +23,9 @@ option(BILD_DOCUMENTATION "Also build documentation" off)
 find_package(OpenCV REQUIRED)
 find_package(doctest CONFIG REQUIRED)
 
+find_package(cxxopts CONFIG REQUIRED)
+
+
 if (BILD_DOCUMENTATION)
 find_package(Doxygen)
 endif()
