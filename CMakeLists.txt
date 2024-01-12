@@ -1,7 +1,28 @@
 cmake_minimum_required(VERSION 3.8)
 
-option(BUILD_ONLY_LIBRARY "Only build loader" off)
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER "cmake")
 
+
+set(CMAKE_VERBOSE_MAKEFILE True)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED True) 
+
+
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_CURRENT_SOURCE_DIR}/bin.dbg)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_CURRENT_SOURCE_DIR}/bin.rel)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_CURRENT_SOURCE_DIR}/bin.relwithdbg)
+
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+  set(CMAKE_INSTALL_PREFIX "${CMAKE_SOURCE_DIR}/install" CACHE PATH "..." FORCE)
+endif()
+
+find_package(OpenCV REQUIRED)
+find_package(doctest CONFIG REQUIRED)
+find_package(Doxygen)
+
+option(BUILD_ONLY_LIBRARY "Only build loader" off)
 if (BUILD_ONLY_LIBRARY)
 	add_subdirectory(prj.cw/src/)
 else()
@@ -9,3 +30,40 @@ else()
 	add_subdirectory(prj.cw)
 endif()
 
+
+if (DOXYGEN_FOUND) 
+    set(DOXYGEN_IN ${CMAKE_CURRENT_SOURCE_DIR}/prj.cw/Doxyfile)
+    set(DOXYGEN_CONFIGURED_INPUT ${DOXYGEN_IN})
+    
+    add_custom_target(doc ALL
+    COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_CONFIGURED_INPUT}
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    COMMENT "Documentation with doxygen"
+    VERBATIM )
+
+     install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/documentation
+               DESTINATION docs)
+endif()
+
+install(TARGETS unit_tests
+DESTINATION bin)
+
+#install(DIRECTORY ${CMAKE_SOURCE_DIR}/prj.cw/tests/test_dir
+ # DESTINATION prj.cw/tests/test_dir
+#)
+
+install(DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG}/
+      DESTINATION bin
+      CONFIGURATIONS Debug
+      FILES_MATCHING PATTERN "*.dll*"
+)
+install(DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/
+      CONFIGURATIONS Release
+      DESTINATION bin
+      FILES_MATCHING PATTERN "*.dll*"
+)
+install(DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO}/
+      DESTINATION bin
+      CONFIGURATIONS RelWithDebInfo
+      FILES_MATCHING PATTERN "*.dll*"
+)

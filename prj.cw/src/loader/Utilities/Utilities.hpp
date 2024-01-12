@@ -26,7 +26,7 @@ namespace ve {
 	// Works only with unicode!
 	constexpr inline std::string toLower(const std::string& str) {
 		std::string string_temp;
-		string_temp.reserve(str.size());
+		string_temp.resize(str.size());
 		std::transform(str.begin(), str.end(), string_temp.begin(), [](char a) { return toLower(a); });
 		return string_temp;
 	}

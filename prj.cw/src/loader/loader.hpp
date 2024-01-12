@@ -56,7 +56,7 @@ namespace ve {
 			// Just dropss the mat???
 			int refCount = (mat.u) ? ((mat.u)->refcount) : 0;
 			if (refCount > 1) {
-				throw std::exception("WHAT IS HAPPPENING THIS SHOULD HAVE NEVER BEEN THE CASE");
+				//throw std::exception("WHAT IS HAPPPENING THIS SHOULD HAVE NEVER BEEN THE CASE");
 			}
 			mat.release();
 
