@@ -29,7 +29,7 @@ endif()
 
 option(BUILD_ONLY_LIBRARY "Only build loader" off)
 if (BUILD_ONLY_LIBRARY)
-	add_subdirectory(prj.cw/src/)
+	add_subdirectory(prj.cw/)
 else()
 	add_subdirectory(prj.codeforces)
 	add_subdirectory(prj.cw)
