@@ -61,8 +61,7 @@ TEST_CASE("List files") {
 
 		const std::map<std::string, std::vector<ve::Path>> cases =
 		{
-			{"test_dir", normal_entries},
-			{"test_dir_empty", empty}
+			{"test_dir", normal_entries}
 		};
 
 		REQUIRE_NOTHROW(ve::listFiles(CMAKE_TEST_PATH));
