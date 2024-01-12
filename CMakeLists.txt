@@ -42,7 +42,7 @@ if (DOXYGEN_FOUND)
     
     add_custom_target(doc ALL
     COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_CONFIGURED_INPUT}
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/documentation
     COMMENT "Documentation with doxygen"
     VERBATIM )
 
@@ -55,9 +55,9 @@ endif()
 install(TARGETS unit_tests
 DESTINATION bin)
 
-#install(DIRECTORY ${CMAKE_SOURCE_DIR}/test_sources
- # DESTINATION test_sources
-#)
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/test_sources
+  DESTINATION  test_sources
+)
 
 install(DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG}/
       DESTINATION bin
