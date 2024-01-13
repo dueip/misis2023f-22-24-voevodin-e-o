@@ -5,6 +5,9 @@ ve::Error ve::ImageLoader::loadFromFile(const ve::Path& file_path) {
 	if (!isExtensionSupported(file_path.extension().string())) {
 		return { ve::ErrorCodes::UnsupportedExtension, file_path.extension().string() };
 	}
+	if (!std::filesystem::exists(file_path)) {
+		return { ve::ErrorCodes::FileDoesNotExist, file_path.string() };
+	}
 	using namespace std::filesystem;
 	//std::vector<std::filesystem::directory_entry> entries = ve::listFiles(path);
 	std::vector<MatButCooler> temp;
@@ -57,7 +60,6 @@ ve::Error ve::DirectoryLoader::loadFromDirectory(const ve::Path& file_path) {
 	for (auto& el : entries) {
 		entries_path.push_back(el.path());
 	}
-
 	return loadFromFiles(entries_path.begin(), entries_path.end());
 }
 

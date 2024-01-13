@@ -153,11 +153,11 @@ namespace ve {
 		inline static int masks_saved_count = 0;
 	};
 
-
-	inline void generateTestData(const std::filesystem::path& path_to_test_folder, cv::Mat test_mat, int64_t size_of_test_data = ve::fromGigabytes(1)) {
+	//! \returns Количество сохраннёных изображений
+	inline int generateTestData(const std::filesystem::path& path_to_test_folder, cv::Mat test_mat, int64_t size_of_test_data = ve::fromGigabytes(1)) {
 		if (std::filesystem::exists(path_to_test_folder) && std::filesystem::is_directory(path_to_test_folder)) {
 			if (!std::filesystem::is_empty(path_to_test_folder)) {
-				return;
+				return 0;
 			}
 		}
 		ImageWriter writer(path_to_test_folder);
@@ -169,6 +169,7 @@ namespace ve {
 		}
 		
 		writer.saveMasks(a.begin(), a.end());
+		return how_much_images_should_be_in_the_folder;
 	}
 
 
@@ -210,7 +211,7 @@ namespace ve {
 		virtual constexpr [[nodiscard]] bool isExtensionSupported(const std::string& extension) const noexcept = 0;
 
 		//! То же самое, что и \code Options::getInstance().getChunkSize(); \endcode
-		virtual constexpr [[nodiscard]] int64_t getMaxChunkSize() const noexcept = 0;
+		virtual [[nodiscard]] int64_t getMaxChunkSize() const noexcept = 0;
 		
 		//! Размер загруженных данных на данный  момент
 		virtual [[nodiscard]] int64_t getCurrentSize() const noexcept = 0;
@@ -277,7 +278,7 @@ namespace ve {
 
 		void reset() override { is_dirty_ = false; mats_.clear(); }
 
-		constexpr [[nodiscard]] int64_t getMaxChunkSize() const noexcept override { return Options::getInstance().getChunkSize(); }
+		[[nodiscard]] int64_t getMaxChunkSize() const noexcept override { return Options::getInstance().getChunkSize(); }
 		[[nodiscard]] int64_t getCurrentSize() const noexcept override {
 			int64_t size_sum = 0;
 			for (const auto& el : mats_) {
@@ -457,7 +458,7 @@ namespace ve {
 			for (const auto& el : loaders) { if (el->isExtensionSupported(extension)) return true; } return false;
 		}
 		
-		constexpr [[nodiscard]] int64_t getMaxChunkSize() const noexcept {
+		 [[nodiscard]] int64_t getMaxChunkSize() const noexcept {
 			return Options::getInstance().getChunkSize();
 		}
 		int64_t getCurrentSizeOfBlocks() const noexcept {
