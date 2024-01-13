@@ -32,7 +32,6 @@ int main(int argc, const char** argv) {
 	doctest::Context context(argc, argv);
 
 
-
 	dt_removed args(argv);
 	try {
 		cxxopts::Options options("Unit Tests", "Unit tests for a weirdo");
