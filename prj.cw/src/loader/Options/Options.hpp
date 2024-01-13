@@ -5,6 +5,7 @@
 
 #include <vector>
 #include <string_view>
+#include <iostream>
 #include <filesystem>
 #include <opencv2/core/mat.hpp>
 #include <opencv2/imgcodecs.hpp>
@@ -23,16 +24,21 @@ namespace ve{
 			return options;
 		}
 
-		constexpr int64_t [[nodiscard]] getChunkSize() const {
-			return ve::fromMegabytes(512);
+		const int64_t [[nodiscard]] getChunkSize() const {
+			return chunk_size;
 		}
 
-		constexpr int64_t [[nodiscard]] getMaxSize() const {
+		const int64_t [[nodiscard]] getMaxSize() const {
 			return ve::fromGigabytes(2);
+		}
+
+		void setChunkSize(int64_t new_chunk_size) {
+			chunk_size = new_chunk_size;
 		}
 
 	private:
 		Options() = default;
+		int64_t chunk_size = ve::fromMegabytes(512);
 	};
 }
 

@@ -43,3 +43,7 @@ out/
 # Ignore anything with a "local" prefix (since it's something that is not meant to run anywhere outside of my machine)
 test_masks/
 big_data/
+
+/bin*/
+/build/
+/documentation/*

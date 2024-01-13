@@ -10,7 +10,7 @@ if ((MSVC))
 endif()
 #find_package(DCMTK CONFIG REQUIRED)
 #trget_link_libraries(loader PRIVATE DCMTK::DCMTK)
-
+target_link_libraries(loader PRIVATE cxxopts::cxxopts)
 
 add_subdirectory(Utilities)
 add_subdirectory(Options)

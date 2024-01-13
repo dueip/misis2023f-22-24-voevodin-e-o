@@ -26,19 +26,20 @@ namespace ve {
 	// Works only with unicode!
 	constexpr inline std::string toLower(const std::string& str) {
 		std::string string_temp;
-		string_temp.reserve(str.size());
+		string_temp.resize(str.size());
 		std::transform(str.begin(), str.end(), string_temp.begin(), [](char a) { return toLower(a); });
 		return string_temp;
 	}
 
 	enum class ErrorCodes {
-		OK = 0, /// < Ошибки не было
-		FileLargerThanAChunk, /// < Файл оказался больше, чем 1 чанк
-		CannotParseImageFromFile, /// < Бэкэнд не смог прочитать изображение из файла(к примеру, файл битый)
-		UnsupportedExtension, /// < Расширение не поддерживается
-		WasDirty, /// <Класс, который можно использовать только раз, уже использовался
-		SumOfFilesLargerThanAThreshold, /// < Сумма веса файлов была больше, чем заданный максимум хранения
-		Unfiltered = ~0 /// < Неизвестная ошибка
+		OK = 0, /// Ошибки не было
+		FileLargerThanAChunk, /// Файл оказался больше, чем 1 чанк
+		CannotParseImageFromFile, /// Бэкэнд не смог прочитать изображение из файла(к примеру, файл битый)
+		UnsupportedExtension, /// Расширение не поддерживается
+		WasDirty, /// Класс, который можно использовать только раз, уже использовался
+		SumOfFilesLargerThanAThreshold, /// Сумма веса файлов была больше, чем заданный максимум хранения
+		FileDoesNotExist, /// Данный файл не существует.
+		Unfiltered = ~0 /// Неизвестная ошибка
 	};
 
 

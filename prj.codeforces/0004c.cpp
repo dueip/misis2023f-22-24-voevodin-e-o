@@ -7,7 +7,7 @@
 #include <algorithm>
 
 int main() {
-	int n;
+	/*int n;
 	std::ios_base::sync_with_stdio(false);
 	std::cin.tie(NULL);
 	std::cin >> n;
@@ -19,8 +19,8 @@ int main() {
 		hash.emplace(i, thingie);
 		hash_unique.insert(thingie);
 	}
-	int count = 0;
-	for (auto& el : hash_unique) {
+	int count = 0;*/
+	/*for (auto& el : hash_unique) {
 		while (hash.contains(el)) {
 			hash.extract(el);
 			if (count > 0) {
@@ -32,5 +32,5 @@ int main() {
 			++count;
 		}
 		count = 0;
-	}
+	}*/
 }
